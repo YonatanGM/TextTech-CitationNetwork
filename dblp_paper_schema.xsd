@@ -26,7 +26,7 @@
                 <xs:element name="references">
                     <xs:complexType>
                         <xs:sequence>
-                            <xs:element name="reference" type="xs:string" maxOccurs="unbounded" />
+                            <xs:element name="reference" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
                         </xs:sequence>
                     </xs:complexType>
                 </xs:element>
