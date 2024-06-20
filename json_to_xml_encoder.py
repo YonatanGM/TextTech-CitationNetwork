@@ -36,7 +36,7 @@ with open('./dblp_paper_schema.xsd', 'rb') as schema_file:
 xml_schema = etree.XMLSchema(xml_schema_doc)
 xml_parser = etree.XMLParser(schema=xml_schema)
 
-with open('./dblp.v12.50.json', "rb") as f:
+with open('./dblp.v12.12642.json', "rb") as f:
     for i, element in enumerate(ijson.items(f, "item")):
         paper_id = element.get('id')
         root = ET.Element('paper', id=str(paper_id))
