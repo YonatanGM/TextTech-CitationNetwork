@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Academic Data Visualization</title>
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <script defer src="/__/firebase/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="/__/firebase/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="/__/firebase/10.12.2/firebase-database-compat.js"></script>
+  <script defer src="/__/firebase/10.12.2/firebase-storage-compat.js"></script>
+  <script defer src="/__/firebase/10.12.2/firebase-analytics-compat.js"></script>
+  <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+  <style>
+    body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
+    .container { max-width: 1200px; margin: 20px auto; padding: 20px; background: white; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
+    input[type="text"], select, button { width: 100%; margin-bottom: 20px; padding: 10px; font-size: 16px; }
+    input { box-sizing: border-box }
+    .graph-container, .table-container { margin: 20px 0; display: block; }
+    svg { border: 1px solid #ccc; }
+    .flex-container { display: flex; }
+    .xml-container { width: 50%; margin: 20px 0; padding: 20px; border: 1px; background: white; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); overflow: auto;  display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Academic Data Insights</h2>
+    <select id="query-type">
+      <option value="citation">Citation Network</option>
+      <option value="impact">Venue Impact</option>
+      <option value="influential">Influential Authors</option>
+    </select>
+    <form id="query-form"></form>
+    <label for="citation-direction" id="direction-label" style="display:none;">Citation Direction:</label>
+    <select id="citation-direction" name="citationDirection" style="display:none;">
+      <option value="CITES>">Cites</option>
+      <option value="CITES<">Cited By</option>
+    </select>
+    <button id="search-button">Search and Visualize</button>
+    <div class="flex-container">
+      <div id="results" class="graph-container"></div>
+      <div class="xml-container" id="xml-container">
+        <div id="example"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log("DOM fully loaded and parsed");
+      const queryTypeSelect = document.getElementById('query-type');
+      const queryForm = document.getElementById('query-form');
+      const searchButton = document.getElementById('search-button');
+      const resultsContainer = document.getElementById('results');
+      const exampleContainer = document.getElementById('xml-container');
+      const citationDirection = 'CITES>';
+      updateFormFields('citation');
+
+      queryTypeSelect.addEventListener('change', function() {
+        console.log("Query type changed to:", this.value);
+        updateFormFields(this.value);
+        // Clear results container when query type changes
+        resultsContainer.innerHTML = '';
+        exampleContainer.innerHTML = '';
+        exampleContainer.style.display = 'none';
+      });
+
+      searchButton.addEventListener('click', function(event) {
+        event.preventDefault();
+        console.log("Search button clicked");
+        const formData = new FormData(queryForm);
+        if (queryTypeSelect.value === 'citation') {
+          const citationDirection = document.getElementById('citation-direction').value;
+          formData.append('citationDirection', citationDirection); // Add this line
+        }
+        fetchData(formData);
+      });
+
+      function addTextField(name, placeholder, defaultValue = '') {
+        console.log("Adding text field:", name);
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = name;
+        input.placeholder = placeholder;
+        if (defaultValue !== '') {
+          input.value = defaultValue; // Add default text that can be selected
+        }
+        queryForm.appendChild(input);
+      }
+
+      function updateFormFields(queryType) {
+        console.log("Updating form fields for query type:", queryType);
+        queryForm.innerHTML = '';
+        switch(queryType) {
+          case 'citation':
+            addTextField('titleOrDoi', 'Paper Title or DOI'); // Default text
+            addTextField('depth', 'Depth'); // Default text
+            showDirectionField(true); // Show the direction field
+            break;
+          case 'impact':
+            addTextField('venueName', 'Venue Name'); // Default text
+            showDirectionField(false); // Hide the direction field
+            break;
+          case 'influential':
+            addTextField('fieldName', 'Field of Study'); // Default text
+            showDirectionField(false); // Hide the direction field
+            break;
+        }
+      }
+      function showDirectionField(show) {
+        const directionLabel = document.getElementById('direction-label');
+        const directionSelect = document.getElementById('citation-direction');
+        if (show) {
+          // directionLabel.style.display = 'inline';
+          directionLabel.style.display = 'none';
+          directionSelect.style.display = 'inline';
+          directionSelect.value = 'CITES>'; // Default to "Cites"
+        } else {
+          directionLabel.style.display = 'none';
+          directionSelect.style.display = 'none';
+        }
+      }
+
+      function fetchData(formData) {
+        const params = new URLSearchParams(formData);
+        const queryType = document.getElementById('query-type').value;
+        let url;
+
+        switch(queryType) {
+          case 'citation':
+            url = `https://querycitationnetwork-bihtpjer2q-uc.a.run.app`;
+            searchTitle = formData.get('titleOrDoi');
+            break;
+          case 'impact':
+            url = `https://queryvenueimpact-bihtpjer2q-uc.a.run.app`;
+            break;
+          case 'influential':
+            url = `https://queryinfluentialauthors-bihtpjer2q-uc.a.run.app`;
+            break;
+        }
+
+        console.log("Fetching data from URL:", url);
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(Object.fromEntries(params))
+        })
+        .then(response => {
+          console.log("Raw response received:", response);
+          if (!response.ok) {
+            throw new Error('Network response was not ok ' + response.statusText);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log("Data fetched successfully:", data);
+          resultsContainer.innerHTML = '';
+          if (data.nodes && data.relationships) {
+            renderGraph(data);
+          } else {
+            renderTable(data);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching data:', error);
+          resultsContainer.innerHTML = `<p>Error fetching data: ${error.message}</p>`;
+        });
+      }
+
+
+      // const storageRef = firebase.storage().ref();
+
+      
+      function renderGraph(data) {
+        const nodes = data.nodes.map(node => ({
+          ...node,
+          neo4j_id: node.neo4j_id, // Retain the unique Neo4j ID
+          original_id: node.id // Keep the original ID if it exists
+        }));
+
+        const nodeMap = new Map(nodes.map(node => [node.neo4j_id, node]));
+
+        const links = data.relationships.filter(rel =>
+          nodeMap.has(rel.start) && nodeMap.has(rel.end)
+        ).map(rel => ({
+          source: rel.start,
+          target: rel.end,
+          type: rel.type
+        }));
+
+        console.log("Parsed nodes:", nodes);
+        console.log("Parsed links:", links);
+
+        const svg = d3.select(resultsContainer).append('svg')
+          .attr('width', 600)
+          .attr('height', 600)
+          .call(d3.zoom().on("zoom", (event) => {
+            g.attr("transform", event.transform);
+          }));
+
+        const g = svg.append("g");
+
+        // Define the arrow markers
+        svg.append('defs').selectAll('marker')
+            .data(['end-arrow', 'start-arrow'])
+            .enter().append('marker')
+            .attr('id', d => d)
+            .attr('viewBox', '0 -5 10 10')
+            .attr('refX', 5)
+            .attr('refY', 0)
+            .attr('markerWidth', 6)
+            .attr('markerHeight', 6)
+            .attr('orient', 'auto')
+            .append('path')
+            .attr('d', 'M0,-5L10,0L0,5')
+            .attr('fill', '#aaa')
+            .style('stroke', 'none');
+
+
+
+        const simulation = d3.forceSimulation(nodes)
+          .force('link', d3.forceLink(links).id(d => d.neo4j_id))
+          .force('charge', d3.forceManyBody())
+          .force('center', d3.forceCenter(400, 300));
+
+        const link = g.selectAll('line')
+          .data(links)
+          .enter().append('line')
+          .style('stroke', '#aaa')
+          // .attr('marker-end', 'url(#end-arrow)')
+          // .attr('marker-start', citationDirection === 'CITES<' ? 'url(#start-arrow)' : null);
+        const node = g.selectAll('g')
+          .data(nodes)
+          .enter().append('g')
+          .call(d3.drag()
+            .on("start", dragstarted)
+            .on("drag", dragged)
+            .on("end", dragended))
+          .on('click', nodeClicked); // Add click event listener
+
+        node.append('circle')
+          .attr('r', 5)
+          .attr('fill', d => d.title === searchTitle || d.doi == searchTitle ? 'red' : '#69b3a2');
+          
+        node.append('text')
+        .attr('x', 5)
+        .attr('y', 3)
+        .attr('text-anchor', 'start')
+        .style('font-size', '5px')
+        .style('opacity', 0.5) // Add transparency
+        .style('fill', 'black') // Ensure text color is black for contrast
+        .text(d => d.title.length > 20 ? d.title.slice(0, 15) + '...' : d.title);
+
+
+        simulation.on('tick', () => {
+          link.attr('x1', d => d.source.x)
+            .attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x)
+            .attr('y2', d => d.target.y);
+
+          node.attr('transform', d => `translate(${d.x},${d.y})`);
+        });
+
+        function dragstarted(event, d) {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          d.fx = d.x;
+          d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+          d.fx = event.x;
+          d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+          if (!event.active) simulation.alphaTarget(0);
+          d.fx = null;
+          d.fy = null;
+        }
+
+        function nodeClicked(event, d) {
+          // Remove existing rings
+          node.selectAll('circle.ring').remove();
+
+          // Add a ring behind the text
+          d3.select(this).insert('circle', 'text')
+            .attr('class', 'ring')
+            .attr('r', 10)  // Larger radius for the ring
+            .attr('stroke', 'orange')  // Color of the ring
+            .attr('stroke-width', 2)  // Width of the ring
+            .attr('fill', 'none');  // Make sure the ring is just a border
+
+          // Fetch and log the XML file    
+          const paperId = d.original_id;
+          displayXML(paperId);
+         
+        }
+      }
+
+      function loadXMLDoc(filename) {
+        return fetch(filename)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok ' + response.statusText);
+            }
+            return response.text();
+          })
+          .then(str => (new window.DOMParser()).parseFromString(str, "text/xml"));
+      }
+
+      async function displayXML(paperId) {
+        const xmlFile = `xml/paper_${paperId}.xml`;
+        const xslFile = 'paper.xsl';
+        exampleContainer.style.display = 'block';
+        try {
+          const xml = await loadXMLDoc(xmlFile);
+          const xsl = await loadXMLDoc(xslFile);
+
+          if (window.ActiveXObject || "ActiveXObject" in window) { // IE
+            const ex = xml.transformNode(xsl);
+            
+            exampleContainer.innerHTML = ex;
+          } else if (document.implementation && document.implementation.createDocument) { // Other browsers
+            const xsltProcessor = new XSLTProcessor();
+            xsltProcessor.importStylesheet(xsl);
+            const resultDocument = xsltProcessor.transformToFragment(xml, document);
+            exampleContainer.innerHTML = ""; // Clear previous content
+            exampleContainer.appendChild(resultDocument);
+          }
+        } catch (error) {
+          console.error('Error loading XML:', error);
+          exampleContainer.innerHTML = `<p>Error loading XML: ${error.message}</p>`;
+        }
+      }
+      function renderTable(data) {
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'table-container';
+        resultsContainer.appendChild(tableContainer);
+
+        const table = document.createElement('table');
+        tableContainer.appendChild(table);
+
+        const thead = document.createElement('thead');
+        table.appendChild(thead);
+
+        const headerRow = document.createElement('tr');
+        thead.appendChild(headerRow);
+
+        const headers = Object.keys(data[0]);
+        headers.forEach(header => {
+          const th = document.createElement('th');
+          th.textContent = header;
+          headerRow.appendChild(th);
+        });
+
+        const tbody = document.createElement('tbody');
+        table.appendChild(tbody);
+
+        data.forEach(row => {
+          const tr = document.createElement('tr');
+          tbody.appendChild(tr);
+
+          headers.forEach(header => {
+            const td = document.createElement('td');
+            td.textContent = row[header];
+            tr.appendChild(td);
+          });
+        });
+      }
+    });
+  </script>
+</body>
+</html>

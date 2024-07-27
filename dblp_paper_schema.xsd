@@ -21,12 +21,18 @@
                         </xs:sequence>
                     </xs:complexType>
                 </xs:element>
-                <xs:element name="n_citation" type="xs:integer" minOccurs="0" />
+                <xs:element name="n_citation">
+                <xs:simpleType>
+                    <xs:restriction base="xs:integer">
+                    <xs:minInclusive value="1"/>
+                    </xs:restriction>
+                </xs:simpleType>
+                </xs:element>
                 <xs:element name="doc_type" type="xs:string" />
                 <xs:element name="references">
                     <xs:complexType>
                         <xs:sequence>
-                            <xs:element name="reference" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
+                            <xs:element name="reference" type="xs:string" minOccurs="1" maxOccurs="unbounded" />
                         </xs:sequence>
                     </xs:complexType>
                 </xs:element>
@@ -34,14 +40,20 @@
                     <xs:complexType>
                         <xs:simpleContent>
                             <xs:extension base="xs:string">
-                                <xs:attribute name="id" type="xs:integer" use="optional" />
+                                <xs:attribute name="id" use="optional" />
                                 <xs:attribute name="type" type="xs:string" use="optional" />
                             </xs:extension>
                         </xs:simpleContent>
                     </xs:complexType>
                 </xs:element>
-                <xs:element name="doi" type="xs:string" minOccurs="0" />
-                <xs:element name="keywords" minOccurs="0">
+                <xs:element name="doi" minOccurs="1">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:minLength value="1"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:element>
+                <xs:element name="keywords" minOccurs="1">
                     <xs:complexType>
                         <xs:sequence>
                             <xs:element name="keyword" maxOccurs="unbounded">
@@ -57,7 +69,7 @@
                     </xs:complexType>
                 </xs:element>
                 <xs:element name="publisher" type="xs:string" minOccurs="0" />
-                <xs:element name="abstract" type="xs:string" minOccurs="0" />
+                <xs:element name="abstract" type="xs:string" minOccurs="1" />
             </xs:sequence>
             <xs:attribute name="id" type="xs:integer" use="required" />
         </xs:complexType>

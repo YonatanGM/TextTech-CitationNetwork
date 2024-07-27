@@ -95,22 +95,26 @@ with open('./dblp.v12.12642.json', "rb") as f:
         if abstract_text:
             root.append(create_xml_element('abstract', abstract_text))
 
-        # Write to XML file
-        folder_path = "./xml"
-        # Create the folder if it doesn't exist
-        os.makedirs(folder_path, exist_ok=True)
+        # Convert the XML tree to a string
+        xml_string = ET.tostring(root, encoding='utf-8', method='xml')
 
-        xml_file_path = f"{folder_path}/paper_{paper_id}.xml"
-        tree = ET.ElementTree(root)
-        tree.write(xml_file_path)
-
-        # Validate the XML file against the schema
+        # Validate the XML string against the schema
         try:
-            with open(xml_file_path, 'rb') as xml_file:
-                etree.parse(xml_file, xml_parser)
-            print(f"XML file {xml_file_path} is valid.")
+            etree.fromstring(xml_string, xml_parser)
+            print(f"XML for paper {paper_id} is valid.")
+
+            # Write to XML file
+            folder_path = "./xml"
+            # Create the folder if it doesn't exist
+            os.makedirs(folder_path, exist_ok=True)
+
+            xml_file_path = f"{folder_path}/paper_{paper_id}.xml"
+            with open(xml_file_path, 'wb') as xml_file:
+                xml_file.write(xml_string)
+            print(f"XML file {xml_file_path} has been written successfully.")
+            
         except etree.XMLSyntaxError as e:
-            print(f"XML file {xml_file_path} is invalid: {e}")
+            print(f"XML for paper {paper_id} is invalid: {e}")
 
 # Print execution time
 end = time.process_time()

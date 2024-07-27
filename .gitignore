@@ -1,1 +1,9 @@
 /xml/
+/__/
+# macOS specific files
+.DS_Store
+
+Firebase graph json old/
+
+# Old GraphML files
+Graphml old/

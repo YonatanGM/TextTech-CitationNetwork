@@ -59,7 +59,7 @@ def make_serializable(obj):
 json_file_path = './dblp.v12.json'
 
 # Build paper map incrementally
-paper_map = build_paper_map_incremental(json_file_path, max_papers=1000000)  # Limit to 100,000 papers for demonstration
+paper_map = build_paper_map_incremental(json_file_path, max_papers=1000000)  # Limit to 100,000 papers 
 
 # Extract papers and references
 subset = extract_papers_and_references(paper_map, initial_paper_count=100, max_depth=5)
